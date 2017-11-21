@@ -1,4 +1,4 @@
-/* global window, setTimeout, clearTimeout */
+/* global self, setTimeout, clearTimeout */
 import {isBrowser, log} from '../utils';
 import {getPageLoadPromise, resizeDrawingBuffer} from '../webgl-utils';
 import {createGLContext, isWebGL, resetParameters} from '../webgl';
@@ -7,11 +7,11 @@ import assert from 'assert';
 
 // Node.js polyfills for requestAnimationFrame and cancelAnimationFrame
 export function requestAnimationFrame(callback) {
-  return isBrowser ? window.requestAnimationFrame(callback) : setTimeout(callback, 1000 / 60);
+  return isBrowser && self.requestAnimationFrame ? self.requestAnimationFrame(callback) : setTimeout(callback, 1000 / 60);
 }
 
 export function cancelAnimationFrame(timerId) {
-  return isBrowser ? window.cancelAnimationFrame(timerId) : clearTimeout(timerId);
+  return isBrowser && self.requestAnimationFrame ? self.cancelAnimationFrame(timerId) : clearTimeout(timerId);
 }
 
 const DEFAULT_GL_OPTIONS = {
@@ -29,6 +29,7 @@ export default class AnimationLoop {
       onRender = () => {},
       onFinalize = () => {},
 
+      offScreen = false,
       gl = null,
       glOptions = {},
       width = null,
@@ -67,6 +68,7 @@ export default class AnimationLoop {
     this.needsRedraw = null;
 
     this.gl = gl;
+    this.offScreen = offScreen;
 
     this.setProps({
       autoResizeViewport,
@@ -190,6 +192,10 @@ export default class AnimationLoop {
    * callback
    */
   _renderFrame() {
+    if (this._stopped) {
+      return;
+    }
+
     this._setupFrame();
     this._updateCallbackData();
 
@@ -197,8 +203,11 @@ export default class AnimationLoop {
     this._onRender(this._callbackData);
     // end callback
 
-    // Request another render frame
-    if (!this._stopped) {
+    if (this.offScreen) {
+      // commit returns a Promise
+      this.gl.commit().then(this._renderFrame);
+    } else {
+      // Request another render frame (now )
       this._animationFrameId = requestAnimationFrame(this._renderFrame);
     }
   }
@@ -230,6 +239,7 @@ export default class AnimationLoop {
     this._callbackData.height = height;
     this._callbackData.aspect = width / height;
     this._callbackData.needsRedraw = this.needsRedraw;
+    this._callbackData.offScreen = this.offScreen;
 
     // Update redraw reason
     this._callbackData.needsRedraw = this.needsRedraw;
