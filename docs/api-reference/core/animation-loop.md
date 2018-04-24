@@ -1,58 +1,74 @@
 # AnimationLoop
 
-While this class is named to suggest that it is a wrapper for [`requestAnimationFrame`](https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame), it provides a number of features related to initialization and animation of a `WebGLRenderingContext` or `WebGL2RenderingContext`.
+Manages an animation loop and optionally a WebGL context and a WebGL canvas. It provides a number of features related to initialization and animation of a WebGL context.
 
-* Makes it easy to wait for the HTML page to load before creating resources.
 * Provides a number of commonly needed variables as part of the `context` object which is passed to `onRender` and `onFinalize` callbacks.
 * Objects returned by `onInitailize` will be appended to `context` object hence available to `onRender` and `onFinalize`.
 * To avoid problems with page load timing, move context creation to the `onCreateContext` method.
 * By default, `onRender` method manages resizing of canvas, viewport and framebuffer.
 
+* Makes it easy to wait for the HTML page to load before creating a canvas and WebGL resources.
+
+References:
+* [WebGL Fundamentals](https://webglfundamentals.org/webgl/lessons/webgl-anti-patterns.html#drawingbuffer) contains excellent information on the subtleties of the how the WebGL context's drawing buffer and the HTML canvas interact.
+* When running in the browser, this class uses [`requestAnimationFrame`](https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame)
 
 ## Usage
 
-Short example:
+Autocreates a canvs/context
 ```js
+import {AnimationLoop} from 'luma.gl';
+
 new AnimationLoop({
-  onCreateContext() {
-    return createGLContext({canvas: 'canvas-0'}))
-  },
   onInitialize({gl}) {
+    // Keys in the object returned here will be available in onRenderFrame
     return {
-      clipSpaceQuad: new ClipSpaceQuad({gl, fs: CONTEXT_0_FRAGMENT_SHADER})
+      clipSpaceQuad: new ClipSpaceQuad({gl, fs: FRAGMENT_SHADER})
     };
   },
-  onRender(context) {
-    const {tick, clipSpaceQuad} = context;
+  onRender({tick, clipSpaceQuad}) {
+    // Tick is autoupdated by AnimationLoop
     clipSpaceQuad.render({uTime: tick * 0.01});
   }
 });
 ```
 
-## Callback Parameters
+Use a canvas in the existing DOM through its HTML id
+```js
+import {AnimationLoop, createGLContext} from 'luma.gl';
 
-The callbacks that the app supplies to the `AnimationLoop` will be called with an object containing named parameters. The parameter object will contain the following values:
-
-* `gl` - This `AnimationLoop`'s `WebGLRenderingContext`.
-* `canvas` - The canvas associated with the rendering context.
-* `width`: The canvas width, in device pixels.
-* `height`: The canvas height, in device pixels.
-* `aspect`: The canvas aspect ratio (width/height) to update projection matrices
-* `useDevicePixels`: A boolean value, indicates whether canvas is created to utilize full resolution of Retina/HD displays.
-* `time`: A monotonic value in milliseconds since `AnimationLoop` was created.
-* `tick`: A monotonic counter that updates for every frame rendered.
-* And objects that are returned by `onInitialize` method.
-
+new AnimationLoop({
+  onCreateContext() {
+    return createGLContext({canvas: 'canvas-0'}))
+  },
+  ...
+  onInitialize({gl}) { ... }
+  onRender({...}) { ... }
+});
+```
 
 ## Methods
 
 ### constructor
 
-Parameters:
-* `onInitialize` (callback) - function that will be called exactly once after `start()` has been called, after page load completes and a context has been created. The callback will be called with an initial object containing a gl context object. Can return a promise (e.g. for texture or model loads)
-* `onCreateContext` (callback) - function without parameters that returns a `WebGLRenderingContext`. This callback will be called exactly once, after page load completes.
-* `onRenderFrame` (callback) - Calling `frame` will automatically start the animation. If this is not desired, follow immediately with a `stop()`.
-* `onFinalize` (callback) - Called once when animation is stopped. Can be used to delete objects or free any resources created during `onInitialize`.
+```js
+new AnimationLoop({
+  onCreateContext,
+  onInitialize,
+  onFinalize,
+  onRenderFrame,
+
+  autoResizeViewport,
+  autoResizeDrawingBuffer
+});
+```
+
+* `onCreateContext`=`null` (callback) - function without parameters that returns a `WebGLRenderingContext`. This callback will be called exactly once, after page load completes.
+* `onInitialize` (callback) - if supplied, will be called once after first `start()` has been called, after page load completes and a context has been created.
+* `onFinalize`=`null` (callback) - Called once when animation is stopped. Can be used to delete objects or free any resources created during `onInitialize`.
+* `onRenderFrame`=`null` (callback) - Calling `frame` will automatically start the animation. If this is not desired, follow immediately with a `stop()`.
+* `autoResizeViewport`=`true` - If true, calls `gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight)` each frame before `onRenderFrame` is called. Set to false to control viewport size.
+* `autoResizeDrawingBuffer`=`true` - If true, checks the canvas size every frame and updates the drawing buffer size if needed.
 
 
 ### start
