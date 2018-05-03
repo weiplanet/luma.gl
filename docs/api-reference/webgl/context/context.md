@@ -1,4 +1,4 @@
-# createGLContext
+# createGLContext functions
 
 Provides functions to create and initialize a WebGL context, and to check for presence of WebGL and extensions.
 
@@ -13,12 +13,14 @@ In fact, luma.gl is explicitly designed to work with any WebGL context, and in c
 ## Usage
 
 Create a WebGL context, autocreating a canvas
+
 ```js
 import {createGLContext} from 'luma.gl';
 const gl = createGLContext(); // Prefers WebGL2 but falls back to WebGL1
 ```
 
 Create a WebGL2 context, failing gracefully if WebGL2 is not supported.
+
 ```js
 import {createGLContext} from 'luma.gl';
 const gl = createGLContext({
@@ -31,6 +33,7 @@ if (!gl) {
 ```
 
 Create a WebGL context in an existing canvas, setting WebGL context attributes
+
 ```js
 import {createGLContext} from 'luma.gl';
 const gl = createGLContext({
@@ -43,22 +46,44 @@ const gl = createGLContext({
 ```
 
 Create a headless WebGL context (under Node.js). `headless-gl` must be installed (`npm install gl`).
+
 ```js
 import {createGLContext} from 'luma.gl';
 const gl = createGLContext({width: 100, height: 100});
 ```
 
+Resize the drawing buffer to the specified width and height
 
-## Methods
+```js
+resizeGLContext(gl, {width, height});
+```
 
+As previous call, but width and height will be multiplied with current window.devicePixelRatio
+
+```js
+resizeGLContext(gl, {width, height, useDevicePixels: true});
+```
+
+Resize to the context canvas current clientWidth and clientHeight (this call simply returns without resizing on headless contexts under Node.js)
+
+```js
+resizeGLContext(gl);
+```
+
+// As previous call, but width and height will be multiplied with current window.devicePixelRatio
+
+```js
+resizeGLContext(gl, {useDevicePixels: true});
+```
+
+
+## Functions
 
 ### createGLContext
 
 Creates and returns a WebGL context, both in browsers and in Node.js.
 
-```
-const gl = createGLContext(options);
-```
+`const gl = createGLContext(options);`
 
 * `options` (*Object*) - key/value pairs containing context creation options
 
@@ -83,7 +108,41 @@ const gl = createGLContext(options);
 | `height`                | N/A     | `600`  | height (*number*) of the headless "virtual screen" render target. Ignored for browser contexts |
 
 
+# destroyGLContext
+
+Frees up resources associated with context.
+
+`destroyGLContext(gl)`
+
+* `gl` (`WebGLRenderingContext`) - gl context
+
+Note that browser contexts cannot be explictly deleted, they have to be garbage collected.
+
+
+# resizeGLContext
+
+This method resizes the drawing buffer associated with the context.
+
+`resizeGLContext(gl, {width, height, useDevicePixels})`
+
+* `gl` (`WebGLRenderingContext`) - gl context
+
+If called with no `width` and `height` arguments on the browser, this function will resize the context's drawing buffer to match the current canvas.clientWidth and canvas.clientHeight. See the usage section for some ways this function can be called.
+
+
+# pollGLContext
+
+Checks for completed WebGL2 Queries and resolves any pending promises if the associated queries have completed.
+
+`pollGLContext(gl)`
+
+* `gl` (`WebGLRenderingContext`) - gl context
+
+Note: This function should be called regularly if the app is using WebGL2 Queries.
+
+
 ## Remarks
 
-* In browser environments, contexts are created via `HTMLCanvasElement.getContext`. If the `webgl2` option is set, this function will first try `webgl2` and then `experimental-webgl2`, before falling back to webgl1.
-* In Node.js environments, the context is created using headless-gl. In this case width and height options must be supplied as there is no canvas element to use as reference.
+* In browser environments, contexts are created via `HTMLCanvasElement.getContext`. If the `webgl2` option is set, luma.gl will first try `webgl2` and then `experimental-webgl2`, before falling back to webgl1.
+* In Node.js environments, the context is created using [headless gl](https://www.npmjs.com/package/gl), if installed. In this case width and height options must be supplied as there is no canvas element to use as reference.
+* Resizing
