@@ -90,9 +90,16 @@ const AGGREGATE_SUM_GRIDTEX_VS = `\
 attribute vec2 positions;
 attribute vec2 texCoords;
 varying vec2 vTextureCoord;
+uniform vec2 gridSize;
 void main(void) {
   // Map each position to single pixel
-   gl_Position = vec4(-1.0, -1.0, 1.0, 1.0);
+  vec2 pos = vec2(-1.0, -1.0);
+
+  // Moving to center of the pixel, needed for Intel GPUs
+  vec2 offset = 1.0 / gridSize;
+  pos = pos + offset;
+
+  gl_Position = vec4(pos, 1.0, 1.0);
 
   vTextureCoord = texCoords;
 }
@@ -109,6 +116,10 @@ uniform sampler2D uSampler;
 void main(void) {
   vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
   gl_FragColor = vec4(textureColor.rgb, textureColor.r);
+  //
+  // //-hack
+  // gl_FragColor = vec4(1., 1., 1., 1.);
+  //
 }
 `;
 
@@ -565,6 +576,9 @@ function buildModels(opts) {
       positions: gridTexRectPixelPositions,
       texCoords: gridTexRectPixelTexCoords
     },
+    uniforms: {
+      gridSize
+    },
     vertexCount: gridTexPixels.length / 2,
     drawMode: GL.POINTS
   });
@@ -648,20 +662,26 @@ function buildModels(opts) {
 }
 
 function generateGridAggregationTexture(gl, opts) {
-  const {girdAggregationTexModel} = opts;
+  const {girdAggregationTexModel, gridSize} = opts;
+
+  girdAggregrationFramebuffer.bind();
+
+  gl.viewport(0, 0, gridSize[0], gridSize[1]);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   girdAggregationTexModel.draw({
     framebuffer: girdAggregrationFramebuffer,
     parameters: {
       clearColor: [0, 0, 0, 0],
       clearDepth: 0,
-      blendEquation: [GL.FUNC_ADD, GL.MAX],
-      viewport: [0, 0, 1, 1]
+      blendEquation: [GL.FUNC_ADD, GL.MAX]
     },
     uniforms: {
       uSampler: gridFramebuffer.texture
     }
   });
+
+  girdAggregrationFramebuffer.unbind();
 
   const pixel = girdAggregrationFramebuffer.readPixels({
     width: 1,
@@ -675,9 +695,8 @@ function generateGridAggregationTexture(gl, opts) {
 }
 
 function generateGridTexture(gl, opts) {
-  const {gridSize, girdTexGenerateModel, renderToWindow} = opts;
+  const {gridSize, girdTexGenerateModel} = opts;
 
-  //-TODO- : verif this
   gridFramebuffer.bind();
 
   gl.viewport(0, 0, gridSize[0], gridSize[1]);
