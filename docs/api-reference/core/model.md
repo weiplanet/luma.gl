@@ -1,9 +1,9 @@
 # Model
 
 For most luma.gl  applications, the `Model` class is probably the most important class. It holds all the data necessary to draw an object in luma.gl, e.g.:
-* **shaders** (via a [`Program`](/#/documentation/api-reference/program) instance)
-* **shader modules** [see `Shader Modules`](/#/documentation/api-reference/shader-modules)
-* **vertex attributes** (e.g. a [`Geometry`](/#/documentation/api-reference/geometry) instance, plus any additional attributes for instanced rendering)
+* **shaders** (via a [`Program`](/docs/api-reference/webgl/program.md) instance)
+* **shader modules** [see `Shader Modules`](/docs/api-reference/shadertools/README.md)
+* **vertex attributes** (e.g. a [`Geometry`](/docs/api-reference/core/geometry.md) instance, plus any additional attributes for instanced rendering)
 * **uniforms** these can also reference textures.
 
 It offers:
@@ -202,7 +202,7 @@ Get a map of named attributes
 
 ### setAttributes
 
-Sets map of attributes (Arrays or buffers)
+Sets map of attributes (Attribute instances)
 
 
 ### getUniforms
@@ -262,7 +262,7 @@ model.render(
 ```
 
 * `uniforms`=`{}` - uniform values to be used for drawing.
-* `attributes`=`{}` - attribute definitions to be used for drawing.
+* `attributes`=`{}` - attribute definitions to be used for drawing. Each value can be a plain object, an `Attribute` instance or a `Buffer` instance.
 * `samplers`=`{}` - texture mappings to be used for drawing.
 * `transformFeedback` - a `TranformFeedback` object, that gets activated for this rendering.
 
